@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber-Cat Hacker // Terminal v0.4</title>
+    <title>Cyber-Cat Hacker // Terminal v0.5</title>
     <style>
         body {
             background-color: #0d0d15;
@@ -22,6 +22,16 @@
             text-shadow: 0 0 10px #00ffcc;
             margin-bottom: 5px;
             text-align: center;
+        }
+        .city-badge {
+            background: linear-gradient(90deg, #ff007f, #7f00ff);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            box-shadow: 0 0 12px rgba(255, 0, 127, 0.5);
         }
         .stats {
             display: flex;
@@ -155,6 +165,21 @@
             color: #777;
             cursor: not-allowed;
         }
+        button.next-city-btn {
+            width: 100%;
+            background: linear-gradient(90deg, #00ffcc, #00b8ff);
+            color: #0d0d15;
+            border: none;
+            padding: 12px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+            display: none;
+        }
         .reset-btn {
             background: none;
             border: 1px solid #444;
@@ -170,7 +195,7 @@
 <body>
 
     <h1>🐱 CYBER-CAT HACKER</h1>
-    <p style="color: #888; margin-top: 0; margin-bottom: 15px;">SYSTEM TERMINAL v0.4</p>
+    <div class="city-badge" id="cityBadge">LVL 1: NEON-SLUMS</div>
 
     <div class="stats">
         <div>⚡ Energie: <span id="spins">25</span>/25</div>
@@ -190,7 +215,7 @@
         <button class="action-btn raid" id="raidBtn" onclick="raidServer()" disabled>[ 🌐 SERVER RAID ]</button>
     </div>
 
-    <div id="log">System bereit. Spielstand wird automatisch gesichert.</div>
+    <div id="log">System bereit. Baue alle Module auf MAX aus!</div>
 
     <!-- Hacker-Basis / Upgrade-System -->
     <div class="base-container">
@@ -198,7 +223,7 @@
         
         <div class="building">
             <div class="building-info">
-                <span class="building-name">💻 Mainframe-Server</span>
+                <span class="building-name" id="b1-name">💻 Mainframe-Server</span>
                 <span class="building-lvl" id="b1-lvl">Stufe: 0 / 3</span>
             </div>
             <button class="upgrade-btn" id="b1-btn" onclick="upgradeBuilding(1)">300 🪙</button>
@@ -206,7 +231,7 @@
 
         <div class="building">
             <div class="building-info">
-                <span class="building-name">📡 Quanten-Antenne</span>
+                <span class="building-name" id="b2-name">📡 Quanten-Antenne</span>
                 <span class="building-lvl" id="b2-lvl">Stufe: 0 / 3</span>
             </div>
             <button class="upgrade-btn" id="b2-btn" onclick="upgradeBuilding(2)">500 🪙</button>
@@ -214,183 +239,77 @@
 
         <div class="building">
             <div class="building-info">
-                <span class="building-name">🛡️ Firewall-Kern</span>
+                <span class="building-name" id="b3-name">🛡️ Firewall-Kern</span>
                 <span class="building-lvl" id="b3-lvl">Stufe: 0 / 3</span>
             </div>
             <button class="upgrade-btn" id="b3-btn" onclick="upgradeBuilding(3)">800 🪙</button>
         </div>
+
+        <button class="next-city-btn" id="nextCityBtn" onclick="advanceCity()">🚀 NÄCHSTES VERSTECK HACKEN (+15 ⚡)</button>
     </div>
 
     <button class="reset-btn" onclick="resetGame()">[ Speicherstand zurücksetzen ]</button>
 
     <script>
         const MAX_SPINS = 25;
-        const REGEN_SECONDS = 15; // Alle 15 Sekunden +1 Energie zum Testen
+        const REGEN_SECONDS = 15;
 
-        // Standard-Spielstand
+        // Städte / Level-Definitionen
+        const cities = [
+            { name: "LVL 1: NEON-SLUMS", b1: "💻 Schrott-Mainframe", b2: "📡 Dach-Antenne", b3: "🛡️ Basis-Firewall", baseCost: 300, mult: 1 },
+            { name: "LVL 2: CYBER-BUNKER", b1: "🖥️ Krypton-Cluster", b2: "🛰️ Subraum-Relais", b3: "⚡ Plasma-Schild", baseCost: 700, mult: 1.8 },
+            { name: "LVL 3: DARKNET-ZITADELLE", b1: "🧠 KI-Rechenkern", b2: "🔭 Quanten-Scanner", b3: "🔒 Eis-Matrix", baseCost: 1600, mult: 3.2 },
+            { name: "LVL 4: MEGACORP-TOWER", b1: "💎 Neural-Nexus", b2: "🌌 Hyper-Transmitter", b3: "🔥 Phönix-Abwehr", baseCost: 3500, mult: 6 },
+            { name: "LVL 5: ORBITAL-STATION", b1: "👑 Omega-Core", b2: "🛸 Sternen-Link", b3: "🛡️ Ägis-System", baseCost: 8000, mult: 12 }
+        ];
+
         let gameState = {
+            cityIndex: 0,
             spins: 25,
             coins: 200,
             shields: 0,
             raidCharges: 0,
             buildings: {
-                1: { level: 0, maxLevel: 3, cost: 300, name: "Mainframe-Server" },
-                2: { level: 0, maxLevel: 3, cost: 500, name: "Quanten-Antenne" },
-                3: { level: 0, maxLevel: 3, cost: 800, name: "Firewall-Kern" }
+                1: { level: 0, maxLevel: 3, cost: 300 },
+                2: { level: 0, maxLevel: 3, cost: 500 },
+                3: { level: 0, maxLevel: 3, cost: 800 }
             }
         };
 
         let secondsLeft = REGEN_SECONDS;
         const symbols = ['🪙', '💻', '🛡️', '🐱', '🌐'];
 
-        // Spielstand laden
         function loadGame() {
-            const saved = localStorage.getItem('cyberCatSave');
+            const saved = localStorage.getItem('cyberCatSaveV5');
             if (saved) {
                 gameState = JSON.parse(saved);
             }
         }
 
-        // Spielstand speichern
         function saveGame() {
-            localStorage.setItem('cyberCatSave', JSON.stringify(gameState));
+            localStorage.setItem('cyberCatSaveV5', JSON.stringify(gameState));
         }
 
         function resetGame() {
             if (confirm("Wirklich den kompletten Fortschritt löschen?")) {
-                localStorage.removeItem('cyberCatSave');
+                localStorage.removeItem('cyberCatSaveV5');
                 location.reload();
             }
         }
 
         function updateUI() {
+            const currentCity = cities[gameState.cityIndex];
+            document.getElementById('cityBadge').innerText = currentCity.name;
             document.getElementById('spins').innerText = gameState.spins;
             document.getElementById('coins').innerText = gameState.coins;
             document.getElementById('shields').innerText = gameState.shields;
+
+            document.getElementById('b1-name').innerText = currentCity.b1;
+            document.getElementById('b2-name').innerText = currentCity.b2;
+            document.getElementById('b3-name').innerText = currentCity.b3;
 
             document.getElementById('spinBtn').disabled = gameState.spins <= 0;
 
             let raidBtn = document.getElementById('raidBtn');
             if (gameState.raidCharges > 0) {
-                raidBtn.innerText = `[ 🌐 SERVER RAID (${gameState.raidCharges}) ]`;
-                raidBtn.disabled = false;
-            } else {
-                raidBtn.innerText = `[ 🌐 SERVER RAID (0) ]`;
-                raidBtn.disabled = true;
-            }
-
-            for (let id in gameState.buildings) {
-                let b = gameState.buildings[id];
-                let btn = document.getElementById(`b${id}-btn`);
-                let lvlTxt = document.getElementById(`b${id}-lvl`);
-
-                if (b.level >= b.maxLevel) {
-                    lvlTxt.innerText = "Stufe: MAX";
-                    btn.innerText = "MAX";
-                    btn.disabled = true;
-                } else {
-                    lvlTxt.innerText = `Stufe: ${b.level} / ${b.maxLevel}`;
-                    btn.innerText = `${b.cost} 🪙`;
-                    btn.disabled = gameState.coins < b.cost;
-                }
-            }
-            saveGame();
-        }
-
-        function spin() {
-            if (gameState.spins <= 0) return;
-
-            gameState.spins--;
-            const r1 = symbols[Math.floor(Math.random() * symbols.length)];
-            const r2 = symbols[Math.floor(Math.random() * symbols.length)];
-            const r3 = symbols[Math.floor(Math.random() * symbols.length)];
-
-            document.getElementById('reel1').innerText = r1;
-            document.getElementById('reel2').innerText = r2;
-            document.getElementById('reel3').innerText = r3;
-
-            checkWin(r1, r2, r3);
-            updateUI();
-        }
-
-        function checkWin(r1, r2, r3) {
-            const log = document.getElementById('log');
-
-            if (r1 === r2 && r2 === r3) {
-                if (r1 === '🪙') {
-                    gameState.coins += 500;
-                    log.innerText = "💰 DATEN-TREFFER! +500 Krypto-Credits!";
-                } else if (r1 === '💻') {
-                    gameState.coins += 1000;
-                    log.innerText = "👾 SERVER GEHACKT! +1.000 Credits!";
-                } else if (r1 === '🛡️') {
-                    if (gameState.shields < 3) {
-                        gameState.shields++;
-                        log.innerText = "🛡️ FIREWALL AKTIVIERT! (+1 Schutz)";
-                    } else {
-                        gameState.coins += 250;
-                        log.innerText = "🛡️ Voll! +250 Credits stattdessen.";
-                    }
-                } else if (r1 === '🌐') {
-                    gameState.raidCharges++;
-                    log.innerText = "🌐 RAID-SIGNAL ERREICHT! +1 Angriff freigeschaltet!";
-                } else if (r1 === '🐱') {
-                    gameState.coins += 2000;
-                    gameState.spins += 5;
-                    log.innerText = "👑 CYBER-CAT JACKPOT! +2.000 Credits & +5 Energie!";
-                }
-            } else if (r1 === '🪙' || r2 === '🪙' || r3 === '🪙') {
-                gameState.coins += 60;
-                log.innerText = "Kleiner Datenfund: +60 Credits.";
-            } else {
-                log.innerText = "Zugriff verweigert. Erneut versuchen...";
-            }
-        }
-
-        function raidServer() {
-            if (gameState.raidCharges <= 0) return;
-
-            gameState.raidCharges--;
-            const log = document.getElementById('log');
-            const targetNames = ["MegaCorp-Server X", "Shadow-Net Node", "Quantum Vault 9", "DarkNet Hub"];
-            const chosenTarget = targetNames[Math.floor(Math.random() * targetNames.length)];
-            const loot = Math.floor(Math.random() * 800) + 400;
-
-            gameState.coins += loot;
-            log.innerText = `💥 ERFOLGREICHER RAID auf "${chosenTarget}"! +${loot} Credits erbeutet!`;
-            updateUI();
-        }
-
-        function upgradeBuilding(id) {
-            let b = gameState.buildings[id];
-            if (gameState.coins >= b.cost && b.level < b.maxLevel) {
-                gameState.coins -= b.cost;
-                b.level++;
-                b.cost = Math.floor(b.cost * 1.6);
-                document.getElementById('log').innerText = `🚀 ${b.name} auf Stufe ${b.level} upgraded!`;
-                updateUI();
-            }
-        }
-
-        // Energie-Regeneration Timer
-        setInterval(() => {
-            const timerEl = document.getElementById('regenTimer');
-            if (gameState.spins < MAX_SPINS) {
-                secondsLeft--;
-                timerEl.innerText = `+1 Energie in ${secondsLeft}s...`;
-                if (secondsLeft <= 0) {
-                    gameState.spins++;
-                    secondsLeft = REGEN_SECONDS;
-                    updateUI();
-                }
-            } else {
-                secondsLeft = REGEN_SECONDS;
-                timerEl.innerText = "Energie-Speicher voll";
-            }
-        }, 1000);
-
-        loadGame();
-        updateUI();
-    </script>
-</body>
-</html>
+                raidBtn.innerText = 
