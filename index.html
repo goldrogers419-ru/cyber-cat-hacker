@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber-Cat Hacker // Terminal v0.8</title>
+    <title>Cyber-Cat Hacker // Terminal v0.7.1</title>
     <style>
         body {
             background-color: #0d0d15;
@@ -17,25 +17,10 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-            position: relative;
-        }
-        .sound-toggle {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #1a1a2e;
-            border: 1px solid #00ffcc;
-            color: #00ffcc;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            box-shadow: 0 0 8px rgba(0, 255, 204, 0.2);
         }
         h1 {
             text-shadow: 0 0 10px #00ffcc;
             margin-bottom: 5px;
-            margin-top: 25px;
             text-align: center;
         }
         .city-badge {
@@ -146,7 +131,6 @@
             padding: 15px;
             box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
             margin-bottom: 20px;
-            box-sizing: border-box;
         }
         .base-container h2 {
             font-size: 1.1rem;
@@ -280,8 +264,6 @@
 </head>
 <body>
 
-    <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
-
     <h1>🐱 CYBER-CAT HACKER</h1>
     <div class="city-badge" id="cityBadge">LVL 1: NEON-SLUMS</div>
 
@@ -303,9 +285,8 @@
         <button class="action-btn raid" id="raidBtn" onclick="raidServer()" disabled>[ 🌐 SERVER RAID ]</button>
     </div>
 
-    <div id="log">System bereit. Audio-Synthesizer aktiv!</div>
+    <div id="log">System bereit.</div>
 
-    <!-- Hacker-Basis / Upgrade-System -->
     <div class="base-container">
         <h2>⚡ HACKER-BASIS (UPGRADES)</h2>
         
@@ -336,22 +317,12 @@
         <button class="next-city-btn" id="nextCityBtn" onclick="advanceCity()">🚀 NÄCHSTES VERSTECK HACKEN (+15 ⚡)</button>
     </div>
 
-    <!-- Cyber-Sammelarchiv -->
     <div class="collection-container">
         <h2>📦 SAMMEL-ARCHIV</h2>
         <div class="items-grid">
-            <div class="col-item" id="item1">
-                <span class="icon">🌿</span>
-                <span>Katzennuss</span>
-            </div>
-            <div class="col-item" id="item2">
-                <span class="icon">💾</span>
-                <span>Zero-Day</span>
-            </div>
-            <div class="col-item" id="item3">
-                <span class="icon">💿</span>
-                <span>Holo-Disk</span>
-            </div>
+            <div class="col-item" id="item1"><span class="icon">🌿</span><span>Katzennuss</span></div>
+            <div class="col-item" id="item2"><span class="icon">💾</span><span>Zero-Day</span></div>
+            <div class="col-item" id="item3"><span class="icon">💿</span><span>Holo-Disk</span></div>
         </div>
         <button class="complete-set-btn" id="completeSetBtn" onclick="claimCollection()">⭐ SET EINTAUSCHEN (+2.500 🪙 & +10 ⚡)</button>
     </div>
@@ -362,36 +333,227 @@
         const MAX_SPINS = 25;
         const REGEN_SECONDS = 15;
         let isSpinning = false;
-        let audioCtx = null;
 
-        // Web Audio API Synthesizer (ohne externe Sound-Dateien)
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const cities = [
+            { name: "LVL 1: NEON-SLUMS", b1: "💻 Schrott-Mainframe", b2: "📡 Dach-Antenne", b3: "🛡️ Basis-Firewall", baseCost: 300, mult: 1 },
+            { name: "LVL 2: CYBER-BUNKER", b1: "🖥️ Krypton-Cluster", b2: "🛰️ Subraum-Relais", b3: "⚡ Plasma-Schild", baseCost: 700, mult: 1.8 },
+            { name: "LVL 3: DARKNET-ZITADELLE", b1: "🧠 KI-Rechenkern", b2: "🔭 Quanten-Scanner", b3: "🔒 Eis-Matrix", baseCost: 1600, mult: 3.2 },
+            { name: "LVL 4: MEGACORP-TOWER", b1: "💎 Neural-Nexus", b2: "🌌 Hyper-Transmitter", b3: "🔥 Phönix-Abwehr", baseCost: 3500, mult: 6 },
+            { name: "LVL 5: ORBITAL-STATION", b1: "👑 Omega-Core", b2: "🛸 Sternen-Link", b3: "🛡️ Ägis-System", baseCost: 8000, mult: 12 }
+        ];
+
+        let gameState = {
+            cityIndex: 0,
+            spins: 25,
+            coins: 200,
+            shields: 0,
+            raidCharges: 0,
+            collection: { 1: false, 2: false, 3: false },
+            buildings: {
+                1: { level: 0, maxLevel: 3, cost: 300 },
+                2: { level: 0, maxLevel: 3, cost: 500 },
+                3: { level: 0, maxLevel: 3, cost: 800 }
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+        };
+
+        let secondsLeft = REGEN_SECONDS;
+        const symbols = ['🪙', '💻', '🛡️', '🐱', '🌐'];
+
+        function loadGame() {
+            try {
+                const saved = localStorage.getItem('cyberCatSaveV7_fixed');
+                if (saved) {
+                    let parsed = JSON.parse(saved);
+                    if (parsed && typeof parsed === 'object') {
+                        gameState = Object.assign({}, gameState, parsed);
+                        if(!gameState.collection) gameState.collection = { 1: false, 2: false, 3: false };
+                        if(!gameState.buildings) {
+                            gameState.buildings = {
+                                1: { level: 0, maxLevel: 3, cost: 300 },
+                                2: { level: 0, maxLevel: 3, cost: 500 },
+                                3: { level: 0, maxLevel: 3, cost: 800 }
+                            };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Ladefehler, nutze Standardwerte", e);
             }
         }
 
-        function playTone(freq, type, duration, delay = 0, vol = 0.08) {
-            if (!gameState.soundEnabled) return;
-            initAudio();
-
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
-
-            gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.start(audioCtx.currentTime + delay);
-            osc.stop(audioCtx.currentTime + delay + duration);
+        function saveGame() {
+            try {
+                localStorage.setItem('cyberCatSaveV7_fixed', JSON.stringify(gameState));
+            } catch (e) {
+                console.error("Speicherfehler", e);
+            }
         }
 
-        const sfx = {
-            tick:
+        function resetGame() {
+            if (confirm("Wirklich den kompletten Fortschritt löschen?")) {
+                localStorage.removeItem('cyberCatSaveV7_fixed');
+                location.reload();
+            }
+        }
+
+        function updateUI() {
+            try {
+                const currentCity = cities[gameState.cityIndex] || cities[0];
+                document.getElementById('cityBadge').innerText = currentCity.name;
+                document.getElementById('spins').innerText = gameState.spins;
+                document.getElementById('coins').innerText = gameState.coins;
+                document.getElementById('shields').innerText = gameState.shields;
+
+                document.getElementById('b1-name').innerText = currentCity.b1;
+                document.getElementById('b2-name').innerText = currentCity.b2;
+                document.getElementById('b3-name').innerText = currentCity.b3;
+
+                document.getElementById('spinBtn').disabled = gameState.spins <= 0 || isSpinning;
+
+                let raidBtn = document.getElementById('raidBtn');
+                if (gameState.raidCharges > 0) {
+                    raidBtn.innerText = `[ 🌐 SERVER RAID (${gameState.raidCharges}) ]`;
+                    raidBtn.disabled = isSpinning;
+                } else {
+                    raidBtn.innerText = `[ 🌐 SERVER RAID (0) ]`;
+                    raidBtn.disabled = true;
+                }
+
+                let allCollected = true;
+                for (let id = 1; id <= 3; id++) {
+                    let el = document.getElementById(`item${id}`);
+                    if (gameState.collection && gameState.collection[id]) {
+                        el.classList.add('unlocked');
+                    } else {
+                        el.classList.remove('unlocked');
+                        allCollected = false;
+                    }
+                }
+
+                const completeBtn = document.getElementById('completeSetBtn');
+                if (allCollected) {
+                    completeBtn.style.display = "block";
+                } else {
+                    completeBtn.style.display = "none";
+                }
+
+                let allMax = true;
+                for (let id in gameState.buildings) {
+                    let b = gameState.buildings[id];
+                    let btn = document.getElementById(`b${id}-btn`);
+                    let lvlTxt = document.getElementById(`b${id}-lvl`);
+
+                    if (b.level >= b.maxLevel) {
+                        lvlTxt.innerText = "Stufe: MAX";
+                        btn.innerText = "MAX";
+                        btn.disabled = true;
+                    } else {
+                        allMax = false;
+                        lvlTxt.innerText = `Stufe: ${b.level} / ${b.maxLevel}`;
+                        btn.innerText = `${b.cost} 🪙`;
+                        btn.disabled = gameState.coins < b.cost;
+                    }
+                }
+
+                const nextBtn = document.getElementById('nextCityBtn');
+                if (allMax && gameState.cityIndex < cities.length - 1) {
+                    nextBtn.style.display = "block";
+                } else {
+                    nextBtn.style.display = "none";
+                }
+
+                saveGame();
+            } catch (e) {
+                console.error("UI Update Fehler", e);
+            }
+        }
+
+        function spin() {
+            if (gameState.spins <= 0 || isSpinning) return;
+
+            isSpinning = true;
+            gameState.spins--;
+            document.getElementById('log').innerText = "⏳ Hacke Datenstrom...";
+            updateUI();
+
+            const reels = [
+                document.getElementById('reel1'),
+                document.getElementById('reel2'),
+                document.getElementById('reel3')
+            ];
+
+            reels.forEach(r => r.classList.add('spinning'));
+
+            const finalSymbols = [
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)]
+            ];
+
+            const animInterval = setInterval(() => {
+                reels.forEach(r => {
+                    if (r.classList.contains('spinning')) {
+                        r.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+                    }
+                });
+            }, 70);
+
+            setTimeout(() => {
+                reels[0].classList.remove('spinning');
+                reels[0].innerText = finalSymbols[0];
+            }, 350);
+
+            setTimeout(() => {
+                reels[1].classList.remove('spinning');
+                reels[1].innerText = finalSymbols[1];
+            }, 600);
+
+            setTimeout(() => {
+                clearInterval(animInterval);
+                reels[2].classList.remove('spinning');
+                reels[2].innerText = finalSymbols[2];
+                isSpinning = false;
+
+                checkArtifactDrop();
+                checkWin(finalSymbols[0], finalSymbols[1], finalSymbols[2]);
+                updateUI();
+            }, 850);
+        }
+
+        function checkArtifactDrop() {
+            if (Math.random() < 0.3) {
+                let missing = [];
+                for(let id=1; id<=3; id++) {
+                    if(!gameState.collection[id]) missing.push(id);
+                }
+                if(missing.length > 0) {
+                    let foundId = missing[Math.floor(Math.random() * missing.length)];
+                    gameState.collection[foundId] = true;
+                    const itemNames = { 1: "Katzennuss", 2: "Zero-Day-Exploit", 3: "Holo-Disk" };
+                    document.getElementById('log').innerText = `🎁 ARTEFAKT GEFUNDEN: ${itemNames[foundId]}!`;
+                }
+            }
+        }
+
+        function triggerWinFlash() {
+            const machine = document.getElementById('slotMachine');
+            if(machine) {
+                machine.classList.add('win-flash');
+                setTimeout(() => machine.classList.remove('win-flash'), 500);
+            }
+        }
+
+        function checkWin(r1, r2, r3) {
+            const log = document.getElementById('log');
+            const mult = cities[gameState.cityIndex].mult;
+
+            if (r1 === r2 && r2 === r3) {
+                triggerWinFlash();
+                if (r1 === '🪙') {
+                    let win = Math.floor(500 * mult);
+                    gameState.coins += win;
+                    log.innerText = `💰 DATEN-TREFFER! +${win} Krypto-Credits!`;
+                } else if (r1 === '💻') {
+                    let win = Math.floor(1000 * mult);
+                    gameState.coins += win;
+                    log
