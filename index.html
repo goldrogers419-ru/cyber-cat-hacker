@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber-Cat Hacker // Terminal v0.3</title>
+    <title>Cyber-Cat Hacker // Terminal v0.4</title>
     <style>
         body {
             background-color: #0d0d15;
@@ -30,9 +30,15 @@
             padding: 12px 20px;
             border: 1px solid #00ffcc;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
             box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
             font-size: 0.9rem;
+        }
+        .regen-info {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 18px;
+            height: 16px;
         }
         .slot-machine {
             display: flex;
@@ -95,7 +101,6 @@
             margin-bottom: 25px;
             font-size: 0.95rem;
         }
-        /* Basis / Aufbau-Bereich */
         .base-container {
             width: 100%;
             max-width: 400px;
@@ -104,6 +109,7 @@
             border-radius: 10px;
             padding: 15px;
             box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
+            margin-bottom: 20px;
         }
         .base-container h2 {
             font-size: 1.1rem;
@@ -149,18 +155,29 @@
             color: #777;
             cursor: not-allowed;
         }
+        .reset-btn {
+            background: none;
+            border: 1px solid #444;
+            color: #666;
+            padding: 5px 10px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
     <h1>🐱 CYBER-CAT HACKER</h1>
-    <p style="color: #888; margin-top: 0; margin-bottom: 15px;">SYSTEM TERMINAL v0.3</p>
+    <p style="color: #888; margin-top: 0; margin-bottom: 15px;">SYSTEM TERMINAL v0.4</p>
 
     <div class="stats">
-        <div>⚡ Energie: <span id="spins">25</span></div>
+        <div>⚡ Energie: <span id="spins">25</span>/25</div>
         <div>🪙 Credits: <span id="coins">200</span></div>
         <div>🛡️ Firewalls: <span id="shields">0</span>/3</div>
     </div>
+    <div class="regen-info" id="regenTimer">Energie-Speicher voll</div>
 
     <div class="slot-machine">
         <div class="reel" id="reel1">🐱</div>
@@ -173,7 +190,7 @@
         <button class="action-btn raid" id="raidBtn" onclick="raidServer()" disabled>[ 🌐 SERVER RAID ]</button>
     </div>
 
-    <div id="log">Willkommen zurück! Erdrehe dir Raids oder knacke fremde Server.</div>
+    <div id="log">System bereit. Spielstand wird automatisch gesichert.</div>
 
     <!-- Hacker-Basis / Upgrade-System -->
     <div class="base-container">
@@ -204,38 +221,66 @@
         </div>
     </div>
 
-    <script>
-        let spins = 25;
-        let coins = 200;
-        let shields = 0;
-        let raidCharges = 0; // Gesammelte Angriffe
+    <button class="reset-btn" onclick="resetGame()">[ Speicherstand zurücksetzen ]</button>
 
-        let buildings = {
-            1: { level: 0, maxLevel: 3, cost: 300, name: "Mainframe-Server" },
-            2: { level: 0, maxLevel: 3, cost: 500, name: "Quanten-Antenne" },
-            3: { level: 0, maxLevel: 3, cost: 800, name: "Firewall-Kern" }
+    <script>
+        const MAX_SPINS = 25;
+        const REGEN_SECONDS = 15; // Alle 15 Sekunden +1 Energie zum Testen
+
+        // Standard-Spielstand
+        let gameState = {
+            spins: 25,
+            coins: 200,
+            shields: 0,
+            raidCharges: 0,
+            buildings: {
+                1: { level: 0, maxLevel: 3, cost: 300, name: "Mainframe-Server" },
+                2: { level: 0, maxLevel: 3, cost: 500, name: "Quanten-Antenne" },
+                3: { level: 0, maxLevel: 3, cost: 800, name: "Firewall-Kern" }
+            }
         };
 
+        let secondsLeft = REGEN_SECONDS;
         const symbols = ['🪙', '💻', '🛡️', '🐱', '🌐'];
 
-        function updateUI() {
-            document.getElementById('spins').innerText = spins;
-            document.getElementById('coins').innerText = coins;
-            document.getElementById('shields').innerText = shields;
+        // Spielstand laden
+        function loadGame() {
+            const saved = localStorage.getItem('cyberCatSave');
+            if (saved) {
+                gameState = JSON.parse(saved);
+            }
+        }
 
-            // Raid-Button aktivieren, wenn mindestens 1 Raid aufgeladen ist
+        // Spielstand speichern
+        function saveGame() {
+            localStorage.setItem('cyberCatSave', JSON.stringify(gameState));
+        }
+
+        function resetGame() {
+            if (confirm("Wirklich den kompletten Fortschritt löschen?")) {
+                localStorage.removeItem('cyberCatSave');
+                location.reload();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('spins').innerText = gameState.spins;
+            document.getElementById('coins').innerText = gameState.coins;
+            document.getElementById('shields').innerText = gameState.shields;
+
+            document.getElementById('spinBtn').disabled = gameState.spins <= 0;
+
             let raidBtn = document.getElementById('raidBtn');
-            if (raidCharges > 0) {
-                raidBtn.innerText = `[ 🌐 SERVER RAID (${raidCharges}) ]`;
+            if (gameState.raidCharges > 0) {
+                raidBtn.innerText = `[ 🌐 SERVER RAID (${gameState.raidCharges}) ]`;
                 raidBtn.disabled = false;
             } else {
                 raidBtn.innerText = `[ 🌐 SERVER RAID (0) ]`;
                 raidBtn.disabled = true;
             }
 
-            // Upgrade-Buttons aktualisieren
-            for (let id in buildings) {
-                let b = buildings[id];
+            for (let id in gameState.buildings) {
+                let b = gameState.buildings[id];
                 let btn = document.getElementById(`b${id}-btn`);
                 let lvlTxt = document.getElementById(`b${id}-lvl`);
 
@@ -246,15 +291,16 @@
                 } else {
                     lvlTxt.innerText = `Stufe: ${b.level} / ${b.maxLevel}`;
                     btn.innerText = `${b.cost} 🪙`;
-                    btn.disabled = coins < b.cost;
+                    btn.disabled = gameState.coins < b.cost;
                 }
             }
+            saveGame();
         }
 
         function spin() {
-            if (spins <= 0) return;
+            if (gameState.spins <= 0) return;
 
-            spins--;
+            gameState.spins--;
             const r1 = symbols[Math.floor(Math.random() * symbols.length)];
             const r2 = symbols[Math.floor(Math.random() * symbols.length)];
             const r3 = symbols[Math.floor(Math.random() * symbols.length)];
@@ -272,29 +318,29 @@
 
             if (r1 === r2 && r2 === r3) {
                 if (r1 === '🪙') {
-                    coins += 500;
+                    gameState.coins += 500;
                     log.innerText = "💰 DATEN-TREFFER! +500 Krypto-Credits!";
                 } else if (r1 === '💻') {
-                    coins += 1000;
+                    gameState.coins += 1000;
                     log.innerText = "👾 SERVER GEHACKT! +1.000 Credits!";
                 } else if (r1 === '🛡️') {
-                    if (shields < 3) {
-                        shields++;
+                    if (gameState.shields < 3) {
+                        gameState.shields++;
                         log.innerText = "🛡️ FIREWALL AKTIVIERT! (+1 Schutz)";
                     } else {
-                        coins += 250;
+                        gameState.coins += 250;
                         log.innerText = "🛡️ Voll! +250 Credits stattdessen.";
                     }
                 } else if (r1 === '🌐') {
-                    raidCharges++;
-                    log.innerText = "🌐 RAID-SIGNAL ERDEICHT! +1 Angriff freigeschaltet!";
+                    gameState.raidCharges++;
+                    log.innerText = "🌐 RAID-SIGNAL ERREICHT! +1 Angriff freigeschaltet!";
                 } else if (r1 === '🐱') {
-                    coins += 2000;
-                    spins += 5;
+                    gameState.coins += 2000;
+                    gameState.spins += 5;
                     log.innerText = "👑 CYBER-CAT JACKPOT! +2.000 Credits & +5 Energie!";
                 }
             } else if (r1 === '🪙' || r2 === '🪙' || r3 === '🪙') {
-                coins += 60;
+                gameState.coins += 60;
                 log.innerText = "Kleiner Datenfund: +60 Credits.";
             } else {
                 log.innerText = "Zugriff verweigert. Erneut versuchen...";
@@ -302,23 +348,23 @@
         }
 
         function raidServer() {
-            if (raidCharges <= 0) return;
+            if (gameState.raidCharges <= 0) return;
 
-            raidCharges--;
+            gameState.raidCharges--;
             const log = document.getElementById('log');
             const targetNames = ["MegaCorp-Server X", "Shadow-Net Node", "Quantum Vault 9", "DarkNet Hub"];
             const chosenTarget = targetNames[Math.floor(Math.random() * targetNames.length)];
-            const loot = Math.floor(Math.random() * 800) + 400; // Zwischen 400 und 1200 Credits
+            const loot = Math.floor(Math.random() * 800) + 400;
 
-            coins += loot;
+            gameState.coins += loot;
             log.innerText = `💥 ERFOLGREICHER RAID auf "${chosenTarget}"! +${loot} Credits erbeutet!`;
             updateUI();
         }
 
         function upgradeBuilding(id) {
-            let b = buildings[id];
-            if (coins >= b.cost && b.level < b.maxLevel) {
-                coins -= b.cost;
+            let b = gameState.buildings[id];
+            if (gameState.coins >= b.cost && b.level < b.maxLevel) {
+                gameState.coins -= b.cost;
                 b.level++;
                 b.cost = Math.floor(b.cost * 1.6);
                 document.getElementById('log').innerText = `🚀 ${b.name} auf Stufe ${b.level} upgraded!`;
@@ -326,6 +372,24 @@
             }
         }
 
+        // Energie-Regeneration Timer
+        setInterval(() => {
+            const timerEl = document.getElementById('regenTimer');
+            if (gameState.spins < MAX_SPINS) {
+                secondsLeft--;
+                timerEl.innerText = `+1 Energie in ${secondsLeft}s...`;
+                if (secondsLeft <= 0) {
+                    gameState.spins++;
+                    secondsLeft = REGEN_SECONDS;
+                    updateUI();
+                }
+            } else {
+                secondsLeft = REGEN_SECONDS;
+                timerEl.innerText = "Energie-Speicher voll";
+            }
+        }, 1000);
+
+        loadGame();
         updateUI();
     </script>
 </body>
