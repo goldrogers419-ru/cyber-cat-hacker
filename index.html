@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber-Cat Hacker // Terminal v0.1</title>
+    <title>Cyber-Cat Hacker // Terminal v0.2</title>
     <style>
         body {
             background-color: #0d0d15;
@@ -12,7 +12,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
@@ -25,73 +25,130 @@
         }
         .stats {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             background: #1a1a2e;
-            padding: 15px 25px;
+            padding: 12px 20px;
             border: 1px solid #00ffcc;
             border-radius: 8px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+            font-size: 0.9rem;
         }
         .slot-machine {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             background: #16213e;
-            padding: 25px;
+            padding: 20px;
             border: 2px solid #ff007f;
             border-radius: 12px;
             box-shadow: 0 0 20px rgba(255, 0, 127, 0.4);
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .reel {
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             background: #0f3460;
             border: 1px solid #00ffcc;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
+            font-size: 2.2rem;
         }
-        button {
+        button.spin-btn {
             background-color: #ff007f;
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 12px 30px;
+            font-size: 1.1rem;
             font-family: inherit;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 0 15px #ff007f;
             transition: transform 0.1s;
+            margin-bottom: 20px;
         }
-        button:active {
+        button.spin-btn:active {
             transform: scale(0.95);
         }
-        button:disabled {
+        button.spin-btn:disabled {
             background-color: #555;
             box-shadow: none;
             cursor: not-allowed;
         }
         #log {
-            margin-top: 25px;
             min-height: 24px;
             color: #ffea00;
             text-align: center;
             font-weight: bold;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+        /* Basis / Aufbau-Bereich */
+        .base-container {
+            width: 100%;
+            max-width: 400px;
+            background: #121222;
+            border: 1px solid #00ffcc;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
+        }
+        .base-container h2 {
+            font-size: 1.1rem;
+            margin-top: 0;
+            text-align: center;
+            color: #ff007f;
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+        }
+        .building {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .building-info span {
+            display: block;
+        }
+        .building-name {
+            font-weight: bold;
+            color: #00ffcc;
+        }
+        .building-lvl {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        button.upgrade-btn {
+            background-color: #00ffcc;
+            color: #0d0d15;
+            border: none;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button.upgrade-btn:disabled {
+            background-color: #333;
+            color: #777;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
 
     <h1>🐱 CYBER-CAT HACKER</h1>
-    <p style="color: #888; margin-top: 0;">SYSTEM TERMINAL v0.1</p>
+    <p style="color: #888; margin-top: 0; margin-bottom: 15px;">SYSTEM TERMINAL v0.2</p>
 
     <div class="stats">
-        <div>⚡ Energy: <span id="spins">20</span></div>
-        <div>🪙 Credits: <span id="coins">0</span></div>
+        <div>⚡ Energie: <span id="spins">25</span></div>
+        <div>🪙 Credits: <span id="coins">200</span></div>
         <div>🛡️ Firewalls: <span id="shields">0</span>/3</div>
     </div>
 
@@ -101,24 +158,73 @@
         <div class="reel" id="reel3">🐱</div>
     </div>
 
-    <button id="spinBtn" onclick="spin()">[ HACK STARTEN ]</button>
+    <button class="spin-btn" id="spinBtn" onclick="spin()">[ HACK STARTEN ]</button>
 
-    <div id="log">Bereit für Systemzugriff...</div>
+    <div id="log">Willkommen zurück, Hacker! Baue deine Basis aus.</div>
+
+    <!-- Hacker-Basis / Upgrade-System -->
+    <div class="base-container">
+        <h2>⚡ HACKER-BASIS (UPGRADES)</h2>
+        
+        <div class="building">
+            <div class="building-info">
+                <span class="building-name">💻 Mainframe-Server</span>
+                <span class="building-lvl" id="b1-lvl">Stufe: 0 / 3</span>
+            </div>
+            <button class="upgrade-btn" id="b1-btn" onclick="upgradeBuilding(1)">300 🪙</button>
+        </div>
+
+        <div class="building">
+            <div class="building-info">
+                <span class="building-name">📡 Quanten-Antenne</span>
+                <span class="building-lvl" id="b2-lvl">Stufe: 0 / 3</span>
+            </div>
+            <button class="upgrade-btn" id="b2-btn" onclick="upgradeBuilding(2)">500 🪙</button>
+        </div>
+
+        <div class="building">
+            <div class="building-info">
+                <span class="building-name">🛡️ Firewall-Kern</span>
+                <span class="building-lvl" id="b3-lvl">Stufe: 0 / 3</span>
+            </div>
+            <button class="upgrade-btn" id="b3-btn" onclick="upgradeBuilding(3)">800 🪙</button>
+        </div>
+    </div>
 
     <script>
-        let spins = 20;
-        let coins = 0;
+        let spins = 25;
+        let coins = 200;
         let shields = 0;
 
-        // Symbole: Münzen, Hack-Angriff, Firewall-Schild, Katze (Jackpot)
+        // Gebäude-Level und Kosten
+        let buildings = {
+            1: { level: 0, maxLevel: 3, cost: 300, name: "Mainframe-Server" },
+            2: { level: 0, maxLevel: 3, cost: 500, name: "Quanten-Antenne" },
+            3: { level: 0, maxLevel: 3, cost: 800, name: "Firewall-Kern" }
+        };
+
         const symbols = ['🪙', '💻', '🛡️', '🐱'];
 
         function updateUI() {
             document.getElementById('spins').innerText = spins;
             document.getElementById('coins').innerText = coins;
             document.getElementById('shields').innerText = shields;
-            if (spins <= 0) {
-                document.getElementById('spinBtn').disabled = true;
+
+            // Upgrade-Buttons aktualisieren (Kosten & ob kaufbar)
+            for (let id in buildings) {
+                let b = buildings[id];
+                let btn = document.getElementById(`b${id}-btn`);
+                let lvlTxt = document.getElementById(`b${id}-lvl`);
+
+                if (b.level >= b.maxLevel) {
+                    lvlTxt.innerText = "Stufe: MAX";
+                    btn.innerText = "MAX";
+                    btn.disabled = true;
+                } else {
+                    lvlTxt.innerText = `Stufe: ${b.level} / ${b.maxLevel}`;
+                    btn.innerText = `${b.cost} 🪙`;
+                    btn.disabled = coins < b.cost;
+                }
             }
         }
 
@@ -147,27 +253,41 @@
                     log.innerText = "💰 DATEN-TREFFER! +500 Krypto-Credits!";
                 } else if (r1 === '💻') {
                     coins += 1000;
-                    log.innerText = "👾 SERVER GEHACKT! +1.000 Credits erbeutet!";
+                    log.innerText = "👾 SERVER GEHACKT! +1.000 Credits!";
                 } else if (r1 === '🛡️') {
                     if (shields < 3) {
                         shields++;
                         log.innerText = "🛡️ FIREWALL AKTIVIERT! (+1 Schutz)";
                     } else {
-                        coins += 200;
-                        log.innerText = "🛡️ Firewalls voll! Umgewandelt in +200 Credits.";
+                        coins += 250;
+                        log.innerText = "🛡️ Voll! +250 Credits stattdessen.";
                     }
                 } else if (r1 === '🐱') {
-                    coins += 2500;
+                    coins += 2000;
                     spins += 5;
-                    log.innerText = "👑 CYBER-CAT JACKPOT! +2.500 Credits & +5 Energy!";
+                    log.innerText = "👑 CYBER-CAT JACKPOT! +2.000 Credits & +5 Energie!";
                 }
             } else if (r1 === '🪙' || r2 === '🪙' || r3 === '🪙') {
-                coins += 50;
-                log.innerText = "Kleiner Datenfund: +50 Credits.";
+                coins += 60;
+                log.innerText = "Kleiner Datenfund: +60 Credits.";
             } else {
                 log.innerText = "Zugriff verweigert. Erneut versuchen...";
             }
         }
+
+        function upgradeBuilding(id) {
+            let b = buildings[id];
+            if (coins >= b.cost && b.level < b.maxLevel) {
+                coins -= b.cost;
+                b.level++;
+                b.cost = Math.floor(b.cost * 1.6); // Jedes Level wird teurer
+                document.getElementById('log').innerText = `🚀 ${b.name} auf Stufe ${b.level} upgraded!`;
+                updateUI();
+            }
+        }
+
+        // Initialer Aufruf beim Laden
+        updateUI();
     </script>
 </body>
 </html>
