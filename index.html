@@ -556,4 +556,120 @@
                 } else if (r1 === '💻') {
                     let win = Math.floor(1000 * mult);
                     gameState.coins += win;
-                    log
+                    log.innerText = `👾 SERVER GEHACKT! +${win} Credits!`;
+                } else if (r1 === '🛡️') {
+                    if (gameState.shields < 3) {
+                        gameState.shields++;
+                        log.innerText = "🛡️ FIREWALL AKTIVIERT! (+1 Schutz)";
+                    } else {
+                        let win = Math.floor(250 * mult);
+                        gameState.coins += win;
+                        log.innerText = `🛡️ Voll! +${win} Credits stattdessen.`;
+                    }
+                } else if (r1 === '🌐') {
+                    gameState.raidCharges++;
+                    log.innerText = "🌐 RAID-SIGNAL ERREICHT! +1 Angriff freigeschaltet!";
+                } else if (r1 === '🐱') {
+                    let win = Math.floor(2000 * mult);
+                    gameState.coins += win;
+                    gameState.spins += 5;
+                    log.innerText = `👑 CYBER-CAT JACKPOT! +${win} Credits & +5 Energie!`;
+                }
+            } else if (r1 === '🪙' || r2 === '🪙' || r3 === '🪙') {
+                let win = Math.floor(60 * mult);
+                gameState.coins += win;
+                log.innerText = `Kleiner Datenfund: +${win} Credits.`;
+            } else {
+                if(!log.innerText.includes("ARTEFAKT")) {
+                    log.innerText = "Zugriff verweigert. Erneut versuchen...";
+                }
+            }
+        }
+
+        function raidServer() {
+            if (gameState.raidCharges <= 0 || isSpinning) return;
+
+            gameState.raidCharges--;
+            triggerWinFlash();
+            const log = document.getElementById('log');
+            const mult = cities[gameState.cityIndex].mult;
+            const targetNames = ["MegaCorp-Server X", "Shadow-Net Node", "Quantum Vault 9", "DarkNet Hub"];
+            const chosenTarget = targetNames[Math.floor(Math.random() * targetNames.length)];
+            const loot = Math.floor((Math.random() * 800 + 400) * mult);
+
+            gameState.coins += loot;
+            
+            if (Math.random() < 0.4) {
+                let missing = [];
+                for(let id=1; id<=3; id++) { if(!gameState.collection[id]) missing.push(id); }
+                if(missing.length > 0) {
+                    let foundId = missing[Math.floor(Math.random() * missing.length)];
+                    gameState.collection[foundId] = true;
+                    log.innerText = `💥 RAID ERFOLGREICH + Artefakt erbeutet! Loot: +${loot} 🪙`;
+                    updateUI();
+                    return;
+                }
+            }
+
+            log.innerText = `💥 ERFOLGREICHER RAID auf "${chosenTarget}"! +${loot} Credits erbeutet!`;
+            updateUI();
+        }
+
+        function upgradeBuilding(id) {
+            let b = gameState.buildings[id];
+            if (gameState.coins >= b.cost && b.level < b.maxLevel) {
+                gameState.coins -= b.cost;
+                b.level++;
+                b.cost = Math.floor(b.cost * 1.6);
+                document.getElementById('log').innerText = `🚀 Upgrade erfolgreich auf Stufe ${b.level}!`;
+                updateUI();
+            }
+        }
+
+        function claimCollection() {
+            gameState.coins += 2500;
+            gameState.spins += 10;
+            gameState.collection = { 1: false, 2: false, 3: false };
+            document.getElementById('log').innerText = `⭐ SAMMELSET EINGETAUSCHT! +2.500 Credits & +10 Energie erhalten!`;
+            updateUI();
+        }
+
+        function advanceCity() {
+            if (gameState.cityIndex < cities.length - 1) {
+                gameState.cityIndex++;
+                const nextCity = cities[gameState.cityIndex];
+                gameState.spins += 15;
+                gameState.coins += Math.floor(500 * nextCity.mult);
+
+                gameState.buildings = {
+                    1: { level: 0, maxLevel: 3, cost: nextCity.baseCost },
+                    2: { level: 0, maxLevel: 3, cost: Math.floor(nextCity.baseCost * 1.6) },
+                    3: { level: 0, maxLevel: 3, cost: Math.floor(nextCity.baseCost * 2.5) }
+                };
+
+                document.getElementById('log').innerText = `🎉 Willkommen in ${nextCity.name}! (+15 Energie Bonus!)`;
+                updateUI();
+            }
+        }
+
+        setInterval(() => {
+            const timerEl = document.getElementById('regenTimer');
+            if (timerEl && gameState.spins < MAX_SPINS) {
+                secondsLeft--;
+                timerEl.innerText = `+1 Energie in ${secondsLeft}s...`;
+                if (secondsLeft <= 0) {
+                    gameState.spins++;
+                    secondsLeft = REGEN_SECONDS;
+                    updateUI();
+                }
+            } else if (timerEl) {
+                secondsLeft = REGEN_SECONDS;
+                timerEl.innerText = "Energie-Speicher voll";
+            }
+        }, 1000);
+
+        loadGame();
+        updateUI();
+    </script>
+</body>
+</html>
