@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber-Cat Hacker // Terminal v0.5</title>
+    <title>Cyber-Cat Hacker // Terminal v0.6</title>
     <style>
         body {
             background-color: #0d0d15;
@@ -59,6 +59,11 @@
             border-radius: 12px;
             box-shadow: 0 0 20px rgba(255, 0, 127, 0.4);
             margin-bottom: 20px;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .slot-machine.win-flash {
+            border-color: #00ffcc;
+            box-shadow: 0 0 35px rgba(0, 255, 204, 0.9);
         }
         .reel {
             width: 60px;
@@ -70,6 +75,12 @@
             align-items: center;
             justify-content: center;
             font-size: 2.2rem;
+            transition: transform 0.1s;
+        }
+        .reel.spinning {
+            border-color: #ffea00;
+            transform: scale(0.94);
+            filter: blur(1px);
         }
         .action-buttons {
             display: flex;
@@ -204,7 +215,7 @@
     </div>
     <div class="regen-info" id="regenTimer">Energie-Speicher voll</div>
 
-    <div class="slot-machine">
+    <div class="slot-machine" id="slotMachine">
         <div class="reel" id="reel1">🐱</div>
         <div class="reel" id="reel2">🐱</div>
         <div class="reel" id="reel3">🐱</div>
@@ -223,7 +234,7 @@
         
         <div class="building">
             <div class="building-info">
-                <span class="building-name" id="b1-name">💻 Mainframe-Server</span>
+                <span class="building-name" id="b1-name">💻 Schrott-Mainframe</span>
                 <span class="building-lvl" id="b1-lvl">Stufe: 0 / 3</span>
             </div>
             <button class="upgrade-btn" id="b1-btn" onclick="upgradeBuilding(1)">300 🪙</button>
@@ -231,7 +242,7 @@
 
         <div class="building">
             <div class="building-info">
-                <span class="building-name" id="b2-name">📡 Quanten-Antenne</span>
+                <span class="building-name" id="b2-name">📡 Dach-Antenne</span>
                 <span class="building-lvl" id="b2-lvl">Stufe: 0 / 3</span>
             </div>
             <button class="upgrade-btn" id="b2-btn" onclick="upgradeBuilding(2)">500 🪙</button>
@@ -239,7 +250,7 @@
 
         <div class="building">
             <div class="building-info">
-                <span class="building-name" id="b3-name">🛡️ Firewall-Kern</span>
+                <span class="building-name" id="b3-name">🛡️ Basis-Firewall</span>
                 <span class="building-lvl" id="b3-lvl">Stufe: 0 / 3</span>
             </div>
             <button class="upgrade-btn" id="b3-btn" onclick="upgradeBuilding(3)">800 🪙</button>
@@ -253,8 +264,8 @@
     <script>
         const MAX_SPINS = 25;
         const REGEN_SECONDS = 15;
+        let isSpinning = false;
 
-        // Städte / Level-Definitionen
         const cities = [
             { name: "LVL 1: NEON-SLUMS", b1: "💻 Schrott-Mainframe", b2: "📡 Dach-Antenne", b3: "🛡️ Basis-Firewall", baseCost: 300, mult: 1 },
             { name: "LVL 2: CYBER-BUNKER", b1: "🖥️ Krypton-Cluster", b2: "🛰️ Subraum-Relais", b3: "⚡ Plasma-Schild", baseCost: 700, mult: 1.8 },
@@ -308,8 +319,207 @@
             document.getElementById('b2-name').innerText = currentCity.b2;
             document.getElementById('b3-name').innerText = currentCity.b3;
 
-            document.getElementById('spinBtn').disabled = gameState.spins <= 0;
+            document.getElementById('spinBtn').disabled = gameState.spins <= 0 || isSpinning;
 
             let raidBtn = document.getElementById('raidBtn');
             if (gameState.raidCharges > 0) {
-                raidBtn.innerText = 
+                raidBtn.innerText = `[ 🌐 SERVER RAID (${gameState.raidCharges}) ]`;
+                raidBtn.disabled = isSpinning;
+            } else {
+                raidBtn.innerText = `[ 🌐 SERVER RAID (0) ]`;
+                raidBtn.disabled = true;
+            }
+
+            let allMax = true;
+            for (let id in gameState.buildings) {
+                let b = gameState.buildings[id];
+                let btn = document.getElementById(`b${id}-btn`);
+                let lvlTxt = document.getElementById(`b${id}-lvl`);
+
+                if (b.level >= b.maxLevel) {
+                    lvlTxt.innerText = "Stufe: MAX";
+                    btn.innerText = "MAX";
+                    btn.disabled = true;
+                } else {
+                    allMax = false;
+                    lvlTxt.innerText = `Stufe: ${b.level} / ${b.maxLevel}`;
+                    btn.innerText = `${b.cost} 🪙`;
+                    btn.disabled = gameState.coins < b.cost;
+                }
+            }
+
+            const nextBtn = document.getElementById('nextCityBtn');
+            if (allMax && gameState.cityIndex < cities.length - 1) {
+                nextBtn.style.display = "block";
+            } else {
+                nextBtn.style.display = "none";
+            }
+
+            saveGame();
+        }
+
+        function spin() {
+            if (gameState.spins <= 0 || isSpinning) return;
+
+            isSpinning = true;
+            gameState.spins--;
+            document.getElementById('log').innerText = "⏳ Hacke Datenstrom...";
+            updateUI();
+
+            const reels = [
+                document.getElementById('reel1'),
+                document.getElementById('reel2'),
+                document.getElementById('reel3')
+            ];
+
+            reels.forEach(r => r.classList.add('spinning'));
+
+            const finalSymbols = [
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)]
+            ];
+
+            // Schnelles Durchwechseln der Symbole während der Drehung
+            const animInterval = setInterval(() => {
+                reels.forEach(r => {
+                    if (r.classList.contains('spinning')) {
+                        r.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+                    }
+                });
+            }, 70);
+
+            // Walzen nacheinander anhalten
+            setTimeout(() => {
+                reels[0].classList.remove('spinning');
+                reels[0].innerText = finalSymbols[0];
+            }, 350);
+
+            setTimeout(() => {
+                reels[1].classList.remove('spinning');
+                reels[1].innerText = finalSymbols[1];
+            }, 600);
+
+            setTimeout(() => {
+                clearInterval(animInterval);
+                reels[2].classList.remove('spinning');
+                reels[2].innerText = finalSymbols[2];
+                isSpinning = false;
+                checkWin(finalSymbols[0], finalSymbols[1], finalSymbols[2]);
+                updateUI();
+            }, 850);
+        }
+
+        function triggerWinFlash() {
+            const machine = document.getElementById('slotMachine');
+            machine.classList.add('win-flash');
+            setTimeout(() => machine.classList.remove('win-flash'), 500);
+        }
+
+        function checkWin(r1, r2, r3) {
+            const log = document.getElementById('log');
+            const mult = cities[gameState.cityIndex].mult;
+
+            if (r1 === r2 && r2 === r3) {
+                triggerWinFlash();
+                if (r1 === '🪙') {
+                    let win = Math.floor(500 * mult);
+                    gameState.coins += win;
+                    log.innerText = `💰 DATEN-TREFFER! +${win} Krypto-Credits!`;
+                } else if (r1 === '💻') {
+                    let win = Math.floor(1000 * mult);
+                    gameState.coins += win;
+                    log.innerText = `👾 SERVER GEHACKT! +${win} Credits!`;
+                } else if (r1 === '🛡️') {
+                    if (gameState.shields < 3) {
+                        gameState.shields++;
+                        log.innerText = "🛡️ FIREWALL AKTIVIERT! (+1 Schutz)";
+                    } else {
+                        let win = Math.floor(250 * mult);
+                        gameState.coins += win;
+                        log.innerText = `🛡️ Voll! +${win} Credits stattdessen.`;
+                    }
+                } else if (r1 === '🌐') {
+                    gameState.raidCharges++;
+                    log.innerText = "🌐 RAID-SIGNAL ERREICHT! +1 Angriff freigeschaltet!";
+                } else if (r1 === '🐱') {
+                    let win = Math.floor(2000 * mult);
+                    gameState.coins += win;
+                    gameState.spins += 5;
+                    log.innerText = `👑 CYBER-CAT JACKPOT! +${win} Credits & +5 Energie!`;
+                }
+            } else if (r1 === '🪙' || r2 === '🪙' || r3 === '🪙') {
+                let win = Math.floor(60 * mult);
+                gameState.coins += win;
+                log.innerText = `Kleiner Datenfund: +${win} Credits.`;
+            } else {
+                log.innerText = "Zugriff verweigert. Erneut versuchen...";
+            }
+        }
+
+        function raidServer() {
+            if (gameState.raidCharges <= 0 || isSpinning) return;
+
+            gameState.raidCharges--;
+            triggerWinFlash();
+            const log = document.getElementById('log');
+            const mult = cities[gameState.cityIndex].mult;
+            const targetNames = ["MegaCorp-Server X", "Shadow-Net Node", "Quantum Vault 9", "DarkNet Hub"];
+            const chosenTarget = targetNames[Math.floor(Math.random() * targetNames.length)];
+            const loot = Math.floor((Math.random() * 800 + 400) * mult);
+
+            gameState.coins += loot;
+            log.innerText = `💥 ERFOLGREICHER RAID auf "${chosenTarget}"! +${loot} Credits erbeutet!`;
+            updateUI();
+        }
+
+        function upgradeBuilding(id) {
+            let b = gameState.buildings[id];
+            if (gameState.coins >= b.cost && b.level < b.maxLevel) {
+                gameState.coins -= b.cost;
+                b.level++;
+                b.cost = Math.floor(b.cost * 1.6);
+                document.getElementById('log').innerText = `🚀 Upgrade erfolgreich auf Stufe ${b.level}!`;
+                updateUI();
+            }
+        }
+
+        function advanceCity() {
+            if (gameState.cityIndex < cities.length - 1) {
+                gameState.cityIndex++;
+                const nextCity = cities[gameState.cityIndex];
+                gameState.spins += 15;
+                gameState.coins += Math.floor(500 * nextCity.mult);
+
+                gameState.buildings = {
+                    1: { level: 0, maxLevel: 3, cost: nextCity.baseCost },
+                    2: { level: 0, maxLevel: 3, cost: Math.floor(nextCity.baseCost * 1.6) },
+                    3: { level: 0, maxLevel: 3, cost: Math.floor(nextCity.baseCost * 2.5) }
+                };
+
+                document.getElementById('log').innerText = `🎉 Willkommen in ${nextCity.name}! (+15 Energie Bonus!)`;
+                updateUI();
+            }
+        }
+
+        setInterval(() => {
+            const timerEl = document.getElementById('regenTimer');
+            if (gameState.spins < MAX_SPINS) {
+                secondsLeft--;
+                timerEl.innerText = `+1 Energie in ${secondsLeft}s...`;
+                if (secondsLeft <= 0) {
+                    gameState.spins++;
+                    secondsLeft = REGEN_SECONDS;
+                    updateUI();
+                }
+            } else {
+                secondsLeft = REGEN_SECONDS;
+                timerEl.innerText = "Energie-Speicher voll";
+            }
+        }, 1000);
+
+        loadGame();
+        updateUI();
+    </script>
+</body>
+</html>
