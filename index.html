@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber-Cat Hacker // Terminal v0.2</title>
+    <title>Cyber-Cat Hacker // Terminal v0.3</title>
     <style>
         body {
             background-color: #0d0d15;
@@ -55,24 +55,34 @@
             justify-content: center;
             font-size: 2.2rem;
         }
-        button.spin-btn {
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button.action-btn {
             background-color: #ff007f;
             color: white;
             border: none;
-            padding: 12px 30px;
-            font-size: 1.1rem;
+            padding: 12px 20px;
+            font-size: 1rem;
             font-family: inherit;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 0 15px #ff007f;
             transition: transform 0.1s;
-            margin-bottom: 20px;
         }
-        button.spin-btn:active {
+        button.action-btn.raid {
+            background-color: #7f00ff;
+            box-shadow: 0 0 15px #7f00ff;
+        }
+        button.action-btn:active {
             transform: scale(0.95);
         }
-        button.spin-btn:disabled {
+        button.action-btn:disabled {
             background-color: #555;
             box-shadow: none;
             cursor: not-allowed;
@@ -144,7 +154,7 @@
 <body>
 
     <h1>🐱 CYBER-CAT HACKER</h1>
-    <p style="color: #888; margin-top: 0; margin-bottom: 15px;">SYSTEM TERMINAL v0.2</p>
+    <p style="color: #888; margin-top: 0; margin-bottom: 15px;">SYSTEM TERMINAL v0.3</p>
 
     <div class="stats">
         <div>⚡ Energie: <span id="spins">25</span></div>
@@ -158,9 +168,12 @@
         <div class="reel" id="reel3">🐱</div>
     </div>
 
-    <button class="spin-btn" id="spinBtn" onclick="spin()">[ HACK STARTEN ]</button>
+    <div class="action-buttons">
+        <button class="action-btn" id="spinBtn" onclick="spin()">[ HACK STARTEN ]</button>
+        <button class="action-btn raid" id="raidBtn" onclick="raidServer()" disabled>[ 🌐 SERVER RAID ]</button>
+    </div>
 
-    <div id="log">Willkommen zurück, Hacker! Baue deine Basis aus.</div>
+    <div id="log">Willkommen zurück! Erdrehe dir Raids oder knacke fremde Server.</div>
 
     <!-- Hacker-Basis / Upgrade-System -->
     <div class="base-container">
@@ -195,22 +208,32 @@
         let spins = 25;
         let coins = 200;
         let shields = 0;
+        let raidCharges = 0; // Gesammelte Angriffe
 
-        // Gebäude-Level und Kosten
         let buildings = {
             1: { level: 0, maxLevel: 3, cost: 300, name: "Mainframe-Server" },
             2: { level: 0, maxLevel: 3, cost: 500, name: "Quanten-Antenne" },
             3: { level: 0, maxLevel: 3, cost: 800, name: "Firewall-Kern" }
         };
 
-        const symbols = ['🪙', '💻', '🛡️', '🐱'];
+        const symbols = ['🪙', '💻', '🛡️', '🐱', '🌐'];
 
         function updateUI() {
             document.getElementById('spins').innerText = spins;
             document.getElementById('coins').innerText = coins;
             document.getElementById('shields').innerText = shields;
 
-            // Upgrade-Buttons aktualisieren (Kosten & ob kaufbar)
+            // Raid-Button aktivieren, wenn mindestens 1 Raid aufgeladen ist
+            let raidBtn = document.getElementById('raidBtn');
+            if (raidCharges > 0) {
+                raidBtn.innerText = `[ 🌐 SERVER RAID (${raidCharges}) ]`;
+                raidBtn.disabled = false;
+            } else {
+                raidBtn.innerText = `[ 🌐 SERVER RAID (0) ]`;
+                raidBtn.disabled = true;
+            }
+
+            // Upgrade-Buttons aktualisieren
             for (let id in buildings) {
                 let b = buildings[id];
                 let btn = document.getElementById(`b${id}-btn`);
@@ -262,6 +285,9 @@
                         coins += 250;
                         log.innerText = "🛡️ Voll! +250 Credits stattdessen.";
                     }
+                } else if (r1 === '🌐') {
+                    raidCharges++;
+                    log.innerText = "🌐 RAID-SIGNAL ERDEICHT! +1 Angriff freigeschaltet!";
                 } else if (r1 === '🐱') {
                     coins += 2000;
                     spins += 5;
@@ -275,18 +301,31 @@
             }
         }
 
+        function raidServer() {
+            if (raidCharges <= 0) return;
+
+            raidCharges--;
+            const log = document.getElementById('log');
+            const targetNames = ["MegaCorp-Server X", "Shadow-Net Node", "Quantum Vault 9", "DarkNet Hub"];
+            const chosenTarget = targetNames[Math.floor(Math.random() * targetNames.length)];
+            const loot = Math.floor(Math.random() * 800) + 400; // Zwischen 400 und 1200 Credits
+
+            coins += loot;
+            log.innerText = `💥 ERFOLGREICHER RAID auf "${chosenTarget}"! +${loot} Credits erbeutet!`;
+            updateUI();
+        }
+
         function upgradeBuilding(id) {
             let b = buildings[id];
             if (coins >= b.cost && b.level < b.maxLevel) {
                 coins -= b.cost;
                 b.level++;
-                b.cost = Math.floor(b.cost * 1.6); // Jedes Level wird teurer
+                b.cost = Math.floor(b.cost * 1.6);
                 document.getElementById('log').innerText = `🚀 ${b.name} auf Stufe ${b.level} upgraded!`;
                 updateUI();
             }
         }
 
-        // Initialer Aufruf beim Laden
         updateUI();
     </script>
 </body>
